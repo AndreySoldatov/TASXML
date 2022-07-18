@@ -13,69 +13,7 @@
 
 #include <XMLErrors.hpp>
 #include <XMLUtility.hpp>
-
-/**
- * @brief This function clears XML comments from string: "<!-- This is a comment -->"
- * 
- * If comment is not  closed throws ParseError()
- * 
- * @param str 
- */
-inline void clearComments(std::string &str) {
-    while(str.find("<!--") != std::string::npos) {
-        auto indexOfCommentStart = str.find("<!--");
-        auto indexOfCommentEnd = str.find("-->");
-        if(indexOfCommentEnd == std::string::npos) {
-            throw ParseError(str, "Comment block has no end");
-        }
-        indexOfCommentEnd += 3;
-        str.erase(str.begin() + indexOfCommentStart, str.begin() + indexOfCommentEnd);
-    }
-}
-
-/**
- * @brief This function clears all of the whitespace characters (" ", "\t", "\n") excluding necessary
- * 
- * @param str 
- * @return std::string 
- */
-inline std::string deflate(std::string const &str) {
-    // Removing all new line characters
-    std::string res(str);
-    res.erase(std::remove(res.begin(), res.end(), '\n'), res.end());
-    res.erase(std::remove(res.begin(), res.end(), '\t'), res.end());
-
-    //Removing comments
-    clearComments(res);
-    
-    // Removing spaces
-    int index{};
-    while(index < (int)res.length()) {
-        if(std::isspace(res[index]) && (index == 0 || res[index - 1] == '>')) {
-            int spaceLength{index};
-            while(std::isspace(res[spaceLength]) && spaceLength < (int)res.length()) {
-                spaceLength++;
-            }
-            res.erase(res.begin() + index, res.begin() + spaceLength);
-        }
-        index++;
-    }
-
-    index = res.length() - 1;
-    while(index >= 0) {
-        if(std::isspace(res[index]) && (index == (int)res.length() - 1 || res[index + 1] == '<')) {
-            int spaceLength{index};
-            while(std::isspace(res[spaceLength]) && spaceLength >= 0) {
-                spaceLength--;
-            }
-            res.erase(res.begin() + spaceLength + 1, res.begin() + index + 1);
-            index = spaceLength;
-        }
-        index--;
-    }
-    
-    return res;
-}
+#include <XMLTagType.hpp>
 
 /**
  * @brief This function splits std::string to substrings with assigned XML types:
@@ -103,7 +41,21 @@ inline std::vector<std::pair<std::string, XMLElementType>> splitByTags(std::stri
                 defStr.erase(defStr.begin(), defStr.begin() + endIndex + 1);
             } else {
                 std::string tagName = defStr.substr(1, std::min(defStr.find(' '), defStr.find('>')) - 1);
-                auto closeIndex = defStr.find("</" + tagName + ">");
+
+                size_t indexOfClose{1};
+                size_t currentIndex{defStr.find("<" + tagName) + 1};
+                while(indexOfClose > 0) {
+                    if(defStr.find("<" + tagName, currentIndex) < defStr.find("</" + tagName, currentIndex)) {
+                        currentIndex = defStr.find("<" + tagName, currentIndex) + 1;
+                        indexOfClose++;
+                    }
+                    if(defStr.find("</" + tagName, currentIndex) < defStr.find("<" + tagName, currentIndex)) {
+                        currentIndex = defStr.find("</" + tagName, currentIndex) + 1;
+                        indexOfClose--;
+                    }
+                }
+
+                auto closeIndex = currentIndex - 1;
                 if(closeIndex == std::string::npos) {
                     throw ParseError(str, "paired tag does not have a counterpart");
                 }
@@ -115,47 +67,6 @@ inline std::vector<std::pair<std::string, XMLElementType>> splitByTags(std::stri
             res.push_back({defStr.substr(0, endIndex), XMLElementType::TEXT});
             defStr.erase(defStr.begin(), defStr.begin() + endIndex);
         }
-    }
-
-    return res;
-}
-
-/**
- * @brief This function takes string, and spits it on the std::unordered_map of attributes
- * 
- * if Fails throws ParseError()
- * 
- * @param str 
- * @return std::unordered_map<std::string, std::string> 
- */
-std::unordered_map<std::string, std::string> splitAttributes(std::string const &str) {
-    std::unordered_map<std::string, std::string> res;
-
-    std::string defStr(str);
-    defStr.erase(std::remove(defStr.begin(), defStr.end(), ' '), defStr.end());
-    
-    while(!defStr.empty()) {
-        std::string key = defStr.substr(0, defStr.find('='));
-
-        if(key.length() == 0 || key.length() == defStr.length()) {
-            throw ParseError(str, "Attribute has no name or has no assign sign");
-        }
-        size_t firstQuoteIndex = defStr.find('=') + 1;
-        size_t secondQuoteIndex{};
-        std::string val;
-        if(defStr[firstQuoteIndex] == '"' && firstQuoteIndex < defStr.length()) {
-            secondQuoteIndex = defStr.find('"', firstQuoteIndex + 1);
-            val = defStr.substr(firstQuoteIndex + 1, secondQuoteIndex - firstQuoteIndex - 1);
-        } else if(defStr[firstQuoteIndex] == '\'' && firstQuoteIndex < defStr.length()) {
-            secondQuoteIndex = defStr.find('\'', firstQuoteIndex + 1);
-            val = defStr.substr(firstQuoteIndex + 1, secondQuoteIndex - firstQuoteIndex - 1);
-        } else {
-            throw ParseError(str, "Attribute does not have quotes");
-        }
-        
-        res[key] = val;
-
-        defStr.erase(defStr.begin(), defStr.begin() + secondQuoteIndex + 1);
     }
 
     return res;
@@ -200,9 +111,22 @@ class XMLNode {
                             std::min(str.find(' '), str.find('>')), 
                             str.find(">") - std::min(str.find(' '), str.find('>'))
                         )
-                    );  
+                    );
 
-                    auto vec = splitByTags(str.substr(str.find('>') + 1, str.find("</" + m_element) - str.find('>') - 1));
+                    size_t indexOfClose{1};
+                    size_t currentIndex{str.find("<" + m_element) + 1};
+                    while(indexOfClose > 0) {
+                        if(str.find("<" + m_element, currentIndex) < str.find("</" + m_element, currentIndex)) {
+                            currentIndex = str.find("<" + m_element, currentIndex) + 1;
+                            indexOfClose++;
+                        }
+                        if(str.find("</" + m_element, currentIndex) < str.find("<" + m_element, currentIndex)) {
+                            currentIndex = str.find("</" + m_element, currentIndex) + 1;
+                            indexOfClose--;
+                        }
+                    }
+
+                    auto vec = splitByTags(str.substr(str.find('>') + 1, currentIndex - 1 - str.find('>') - 1));
                     for (auto &pair : vec) {
                         m_childNodes.push_back({});
                         m_childNodes[m_childNodes.size() - 1].assign(pair.first, pair.second);
@@ -232,6 +156,7 @@ class XMLNode {
                 for (auto &[k, v] : m_attributes) {
                     res += k + "=\"" + v + "\" ";
                 }
+                res.erase(res.end() - 1);
                 res += "/>";
                 res += (!del ? "" : "\n");
                 break;
@@ -241,6 +166,7 @@ class XMLNode {
                 for (auto &[k, v] : m_attributes) {
                     res += k + "=\"" + v + "\" ";
                 }
+                res.erase(res.end() - 1);
                 res += ">";
                 res += (!del ? "" : "\n");
                 for (auto &node : m_childNodes) {

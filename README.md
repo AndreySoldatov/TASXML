@@ -1,6 +1,10 @@
-# TASXML 0.2.0
+# TASXML 0.2.1
 
 This is a library for working with XML documents in a modern C++ way.
+
+`developer note:
+    this lib is pretty slow now. Rough benchmarks say that
+    the file with the size of 5.345MB was read in 3.85 seconds in average on my Intel Core i7-4790 3.60GHz with 4 cores and 8 threads`
 
 ### Parsing:
 
