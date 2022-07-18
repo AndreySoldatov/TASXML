@@ -1,21 +1,30 @@
 #include <iomanip>
 #include <XMLNode.hpp>
+#include <fstream>
 
 int main() {
-    std::string rawXML(R"(
-    <html lol="fdfdd" kek="wabawaba">
-        <body>
-            <img>  Hello World <lol> This is test sentense sdsd </lol>  dfdf  </img>
-        </body>
-        <img lol="kek"/>
-    </html>
-    )");
+    XMLNode node1 = {
+        "PairedTag", 
+        {{"first", "second"}},
+        {
+            {"TextTag"},
+            {
+                "SingleTag",
+                {{"first", "second"}}
+            }
+        }
+    };
 
-    XMLNode node(rawXML);
+    node1 << XMLNode{"secondSingleTag", {{"rer", "rere"}}};
+    
+    std::ofstream ofs("test.html", std::ios::trunc);
+    ofs << std::setw(4) << node1;
+    ofs.close();
 
-    std::cout << node[1]["lol"] << "\n"; // kek
+    XMLNode node;
 
-    std::cout << node[0][0][0].dump(0, true) << "\n"; // Hello World
+    std::ifstream ifs("test.html");
+    ifs >> node;
 
-    std::cout << std::setw(4) << node << "\n"; // All document with 4 spaces indent
+    std::cout << std::setw(4) << node;
 }

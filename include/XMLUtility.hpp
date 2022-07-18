@@ -2,26 +2,33 @@
 
 #include <iostream>
 
+/**
+ * @brief This enum represents three possible XML element states:
+ * SINGLE_TAG: "<single_tag/>" 
+ * PAIRED_TAG: "<paired_tag></paired_tag>"
+ * TEXT: "Text"
+ * 
+ */
 enum class XMLElementType {
     SINGLE_TAG,
     PAIRED_TAG,
     TEXT
 };
 
-inline std::ostream &operator<<(std::ostream &os, XMLElementType type) {
+std::string toString(XMLElementType type) {
     switch (type)
     {
         case XMLElementType::PAIRED_TAG:
-            os << "XML Paired Tag";
-            break;
+            return "XML Paired Tag";
         case XMLElementType::SINGLE_TAG:
-            os << "XML Single Tag";
-            break;
+            return "XML Single Tag";
         case XMLElementType::TEXT:
-            os << "XML Text";
-            break;
+            return "XML Text";
         default:
-            break;
+            return {};
     }
-    return os;
+}
+
+inline std::ostream &operator<<(std::ostream &os, XMLElementType type) {
+    return os << toString(type);
 }

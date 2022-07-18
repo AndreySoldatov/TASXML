@@ -34,20 +34,7 @@ public:
 
     virtual const char *what() const noexcept {
         std::string res = "Type exception occured\nThe resulting type was:\n\t\"";
-        switch (m_wasType)
-        {
-            case XMLElementType::PAIRED_TAG:
-                res += "HTML Paired Tag";
-                break;
-            case XMLElementType::SINGLE_TAG:
-                res += "HTML Single Tag";
-                break;
-            case XMLElementType::TEXT:
-                res += "HTML Text";
-                break;
-            default:
-                break;
-        }
+        res += toString(m_wasType);
         res += "\"\nWith the message:\n\t\"" + m_msg + "\"\n";
         return res.c_str();
     }

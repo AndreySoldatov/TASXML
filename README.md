@@ -1,8 +1,8 @@
-# TASXML 0.1.0
+# TASXML 0.2.0
 
 This is a library for working with XML documents in a modern C++ way.
 
-### Example:
+### Parsing:
 
 ```c++
 #include <iomanip>
@@ -24,4 +24,37 @@ int main() {
 
     std::cout << std::setw(4) << node << "\n"; // All document with 4 spaces indent
 }
+```
+
+### Constructing:
+
+```c++
+XMLNode node1 = {
+    "PairedTag", 
+    {{"first", "second"}},
+    {
+        {"TextTag"},
+        {
+            "SingleTag",
+            {{"first", "second"}}
+        }
+    }
+};
+```
+
+### Writing to streams:
+
+```c++
+XMLNode node1;
+
+std::ofstream ofs("test.html", std::ios::trunc);
+ofs << std::setw(4) << node1;
+ofs.close();
+
+XMLNode node;
+
+std::ifstream ifs("test.html");
+ifs >> node;
+
+std::cout << std::setw(4) << node;
 ```
